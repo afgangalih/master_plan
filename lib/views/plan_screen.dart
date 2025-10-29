@@ -11,6 +11,27 @@ class PlanScreen extends StatefulWidget {
 class _PlanScreenState extends State<PlanScreen> {
   Plan plan = const Plan();
 
+  // Langkah 10: Deklarasi ScrollController
+  late ScrollController scrollController;
+
+  // Langkah 11: Inisialisasi + Listener
+  @override
+  void initState() {
+    super.initState();
+    scrollController = ScrollController()
+      ..addListener(() {
+        // Hapus focus dari TextField saat scroll
+        FocusScope.of(context).requestFocus(FocusNode());
+      });
+  }
+
+  // Langkah 13: Bersihkan controller saat widget dihapus
+  @override
+  void dispose() {
+    scrollController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -20,6 +41,7 @@ class _PlanScreenState extends State<PlanScreen> {
     );
   }
 
+  // Tombol Tambah Task
   Widget _buildAddTaskButton() {
     return FloatingActionButton(
       child: const Icon(Icons.add),
@@ -34,19 +56,52 @@ class _PlanScreenState extends State<PlanScreen> {
     );
   }
 
-  // Langkah 8: ListView untuk menampilkan daftar task
+  // Langkah 12: ListView dengan Controller + Keyboard Behavior
   Widget _buildList() {
     return ListView.builder(
+      controller: scrollController,
+      keyboardDismissBehavior: Theme.of(context).platform == TargetPlatform.iOS
+          ? ScrollViewKeyboardDismissBehavior.onDrag
+          : ScrollViewKeyboardDismissBehavior.manual,
       itemCount: plan.tasks.length,
       itemBuilder: (context, index) =>
           _buildTaskTile(plan.tasks[index], index),
     );
   }
 
- 
+  // Tile untuk setiap Task
   Widget _buildTaskTile(Task task, int index) {
     return ListTile(
-      title: Text('Task $index'),
+      leading: Checkbox(
+        value: task.complete,
+        onChanged: (selected) {
+          setState(() {
+            plan = Plan(
+              name: plan.name,
+              tasks: List<Task>.from(plan.tasks)
+                ..[index] = Task(
+                  description: task.description,
+                  complete: selected ?? false,
+                ),
+            );
+          });
+        },
+      ),
+      title: TextFormField(
+        initialValue: task.description,
+        onChanged: (text) {
+          setState(() {
+            plan = Plan(
+              name: plan.name,
+              tasks: List<Task>.from(plan.tasks)
+                ..[index] = Task(
+                  description: text,
+                  complete: task.complete,
+                ),
+            );
+          });
+        },
+      ),
     );
   }
 }
