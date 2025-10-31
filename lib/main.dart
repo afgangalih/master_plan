@@ -1,6 +1,7 @@
-// lib/main.dart
 import 'package:flutter/material.dart';
 import './views/plan_screen.dart';
+import './provider/plan_provider.dart';
+import './models/data_layer.dart';
 
 void main() => runApp(const MasterPlanApp());
 
@@ -10,11 +11,24 @@ class MasterPlanApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.purple,
-        useMaterial3: false, // ⬅️ tambahkan ini
+        useMaterial3: true,
+        checkboxTheme: CheckboxThemeData(
+          fillColor: WidgetStateProperty.resolveWith((states) =>
+              states.contains(WidgetState.selected) ? Colors.purple : Colors.grey),
+          checkColor: WidgetStateProperty.all(Colors.white),
+        ),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          backgroundColor: Colors.purple,
+          foregroundColor: Colors.white,
+        ),
       ),
-      home: const PlanScreen(),
+      home: PlanProvider(
+        notifier: ValueNotifier<Plan>(const Plan()),
+        child: const PlanScreen(),
+      ),
     );
   }
 }

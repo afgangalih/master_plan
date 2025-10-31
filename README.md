@@ -271,3 +271,175 @@ Dari praktikum ini, kita memahami bahwa:
 - **State** adalah inti dari perubahan tampilan dalam Flutter.
 - Dengan menerapkan **Model-View pattern**, struktur kode menjadi lebih bersih dan mudah dikembangkan.
 - `setState()` bukanlah variabel, melainkan **fungsi** untuk memperbarui tampilan saat data berubah.
+
+
+
+
+# Praktikum 2 – Mengelola Data Layer dengan InheritedWidget dan InheritedNotifier
+
+## Deskripsi
+Pada praktikum ini, Anda akan mempelajari cara **memisahkan data layer dari view layer** menggunakan **InheritedWidget** dan **InheritedNotifier**.  
+Tujuan utamanya adalah agar data (model) dapat diakses oleh berbagai widget dalam pohon widget tanpa perlu mengoper data lewat constructor.
+
+---
+
+## Implementasi
+
+### Langkah 5 – Edit Method `_buildAddTaskButton`
+
+```dart
+Widget _buildAddTaskButton(BuildContext context) {
+  ValueNotifier<Plan> planNotifier = PlanProvider.of(context);
+  return FloatingActionButton(
+    child: const Icon(Icons.add),
+    onPressed: () {
+      Plan currentPlan = planNotifier.value;
+      planNotifier.value = Plan(
+        name: currentPlan.name,
+        tasks: List<Task>.from(currentPlan.tasks)..add(const Task()),
+      );
+    },
+  );
+}
+```
+
+#### Penjelasan:
+- `PlanProvider.of(context)` digunakan untuk mengambil data plan dari InheritedNotifier
+- `planNotifier.value` adalah nilai (data) dari plan saat ini
+- Ketika tombol tambah ditekan (`onPressed`), kode akan:
+  - Mengambil plan yang sedang aktif
+  - Membuat salinan daftar tugas (tasks)
+  - Menambahkan satu task baru
+  - Menyimpan hasilnya kembali ke `planNotifier.value`
+- Dengan ini, UI otomatis diperbarui tanpa perlu `setState()`
+
+---
+
+### Langkah 6 – Edit Method `_buildTaskTile`
+
+```dart
+Widget _buildTaskTile(Task task, int index, BuildContext context) {
+  ValueNotifier<Plan> planNotifier = PlanProvider.of(context);
+  return ListTile(
+    leading: Checkbox(
+       value: task.complete,
+       onChanged: (selected) {
+         Plan currentPlan = planNotifier.value;
+         planNotifier.value = Plan(
+           name: currentPlan.name,
+           tasks: List<Task>.from(currentPlan.tasks)
+             ..[index] = Task(
+               description: task.description,
+               complete: selected ?? false,
+             ),
+         );
+       }),
+    title: TextFormField(
+      initialValue: task.description,
+      onChanged: (text) {
+        Plan currentPlan = planNotifier.value;
+        planNotifier.value = Plan(
+          name: currentPlan.name,
+          tasks: List<Task>.from(currentPlan.tasks)
+            ..[index] = Task(
+              description: text,
+              complete: task.complete,
+            ),
+        );
+      },
+    ),
+  );
+}
+```
+
+#### Penjelasan:
+- Method ini menampilkan satu item task dalam bentuk `ListTile`
+- `Checkbox` digunakan untuk menandai task selesai/belum selesai
+- `TextFormField` digunakan agar user bisa mengubah deskripsi task langsung di UI
+- Setiap perubahan (centang atau teks) akan memicu update ke `planNotifier.value`, sehingga tampilan list otomatis diperbarui
+
+---
+
+### Langkah 7 – Edit Method `_buildList`
+
+```dart
+Widget _buildList(Plan plan) {
+   return ListView.builder(
+     controller: scrollController,
+     itemCount: plan.tasks.length,
+     itemBuilder: (context, index) =>
+        _buildTaskTile(plan.tasks[index], index, context),
+   );
+}
+```
+
+#### Penjelasan:
+- Fungsi `_buildList` menampilkan semua tugas (tasks) dalam bentuk list dinamis
+- `ListView.builder` membuat list efisien sesuai jumlah task yang ada
+- `context` dikirim ke `_buildTaskTile` agar setiap item tetap bisa mengakses data dari `PlanProvider`
+
+---
+
+### Langkah 8 & 9 – Edit `build()` Method dan Tambah SafeArea
+
+```dart
+@override
+Widget build(BuildContext context) {
+   return Scaffold(
+     appBar: AppBar(title: const Text('Master Plan')),
+     body: ValueListenableBuilder<Plan>(
+       valueListenable: PlanProvider.of(context),
+       builder: (context, plan, child) {
+         return Column(
+           children: [
+             Expanded(child: _buildList(plan)),
+             SafeArea(child: Text(plan.completenessMessage))
+           ],
+         );
+       },
+     ),
+     floatingActionButton: _buildAddTaskButton(context),
+   );
+}
+```
+
+#### Penjelasan:
+- `ValueListenableBuilder` digunakan untuk memantau perubahan nilai dari `ValueNotifier<Plan>`
+- Setiap kali plan berubah, builder akan rebuild UI secara otomatis
+- Bagian bawah layar (`SafeArea`) menampilkan pesan progres seperti: **"2 out of 5 tasks"**
+- `SafeArea` memastikan teks tidak tertutup oleh area sistem (seperti notifikasi atau tombol navigasi bawah)
+
+---
+
+## Capture Hasil (Langkah 9)
+
+Untuk menampilkan hasil akhir aplikasi:
+
+1. Jalankan aplikasi Flutter  
+
+   ![Screenshot](images/apk_flutter_prak2.png)
+
+2. Tekan tombol "+" untuk menambah task baru  
+
+   ![Screenshot](images/tekantombol_checkbox_prak2.png)
+
+3. Ubah nama task, atau centang checkbox.
+
+4. Lihat perubahan pesan di bagian bawah ("x out of y tasks")  
+
+   ![Screenshot](images/footer_prak2.gif)
+
+
+
+
+---
+
+## Kesimpulan
+
+Dengan menerapkan InheritedNotifier:
+
+- Data dapat diakses dari mana saja di dalam pohon widget
+- Perubahan data otomatis memperbarui UI
+- Tidak perlu lagi memanggil `setState()`
+- Struktur kode menjadi lebih rapi karena pemisahan View dan Model
+
