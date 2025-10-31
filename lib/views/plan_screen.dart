@@ -35,7 +35,7 @@ class _PlanScreenState extends State<PlanScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Master Plan Grok')),
+      appBar: AppBar(title: const Text('Master Plan Afgan')),
       body: _buildList(),
       floatingActionButton: _buildAddTaskButton(),
     );
