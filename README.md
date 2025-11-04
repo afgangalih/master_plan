@@ -444,3 +444,59 @@ Dengan menerapkan InheritedNotifier:
 - Tidak perlu lagi memanggil `setState()`
 - Struktur kode menjadi lebih rapi karena pemisahan View dan Model
 
+---
+
+# Praktikum 3 - Flutter State Management (List Plan)
+
+## Deskripsi
+
+Praktikum ini bertujuan untuk mempelajari penggunaan **InheritedNotifier** dan **ValueNotifier** untuk mengelola daftar rencana (*Plan*) dan tugas (*Task*) secara reaktif di Flutter.
+
+Aplikasi memungkinkan pengguna untuk:
+
+* Menambahkan *plan* baru
+* Menambah dan mengedit daftar *task*
+* Melihat progres penyelesaian setiap *plan*
+
+## Struktur Folder
+
+```
+lib/
+ ├── models/
+ │    └── data_layer.dart
+ ├── provider/
+ │    └── plan_provider.dart
+ └── views/
+      ├── plan_creator_screen.dart
+      └── plan_screen.dart
+```
+
+## Penjelasan Singkat
+
+* **PlanProvider** → Menyediakan daftar `List<Plan>` secara global menggunakan `InheritedNotifier`.
+* **PlanCreatorScreen** → Halaman utama untuk membuat rencana baru.
+* **PlanScreen** → Menampilkan daftar tugas dalam satu rencana dan progresnya secara dinamis.
+
+## Dokumentasi
+
+### Langkah Menjalankan
+
+1. Jalankan aplikasi dengan perintah:
+
+   ```
+   flutter run
+   ```
+2. Tambahkan *plan* baru melalui halaman utama.
+3. Masuk ke *plan* untuk menambah atau mencentang tugas.
+4. Perhatikan pembaruan otomatis pada pesan progres di bagian bawah layar.
+
+### Hasil Akhir
+
+![Screenshot](images/1_praktikum3.png)
+![Screenshot](images/2_praktikum3.png)
+![Screenshot](images/3_praktikum3.png)
+![Screenshot](images/5_praktikum3.png)
+
+> Gambar di atas menampilkan proses pembuatan plan baru, penambahan task, serta pembaruan status secara otomatis.
+
+
