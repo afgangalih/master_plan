@@ -1,131 +1,141 @@
+import 'package:flutter/material.dart';
 import '../models/data_layer.dart';
 import '../provider/plan_provider.dart';
-import 'package:flutter/material.dart';
 
 class PlanScreen extends StatefulWidget {
-  const PlanScreen({super.key});
+  final Plan plan;
+  const PlanScreen({super.key, required this.plan});
 
   @override
   State<PlanScreen> createState() => _PlanScreenState();
 }
 
 class _PlanScreenState extends State<PlanScreen> {
-  // Hapus variabel plan (karena sekarang data berasal dari PlanProvider)
-
-  // Langkah 10 (Praktikum 1): Deklarasi ScrollController
   late ScrollController scrollController;
 
-  // Langkah 11 (Praktikum 1): Inisialisasi + Listener untuk menghapus fokus saat scroll
   @override
   void initState() {
     super.initState();
     scrollController = ScrollController()
       ..addListener(() {
-        // Hapus fokus dari TextField saat pengguna scroll
         FocusScope.of(context).requestFocus(FocusNode());
       });
   }
 
-  // Langkah 13 (Praktikum 1): Bersihkan controller saat widget dihapus
   @override
   void dispose() {
     scrollController.dispose();
     super.dispose();
   }
 
-  // Langkah 8–9 (Praktikum 2)
-  // Ubah build agar menampilkan progress (footer) di bagian bawah menggunakan Column + SafeArea
   @override
   Widget build(BuildContext context) {
+    ValueNotifier<List<Plan>> plansNotifier = PlanProvider.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Master Plan Afgan')),
-      body: ValueListenableBuilder<Plan>(
-        valueListenable: PlanProvider.of(context),
-        builder: (context, plan, child) {
+      appBar: AppBar(title: Text(widget.plan.name)),
+      body: ValueListenableBuilder<List<Plan>>(
+        valueListenable: plansNotifier,
+        builder: (context, plans, child) {
+          // Selalu cari plan dari provider, fallback ke widget.plan jika belum ada
+          final currentPlan = plans.firstWhere(
+            (p) => p.name == widget.plan.name,
+            orElse: () => widget.plan,
+          );
+
           return Column(
             children: [
-              // Expanded agar ListView bisa mengisi ruang yang tersedia
-              Expanded(child: _buildList(plan)),
-
-              // SafeArea untuk menampilkan pesan progress di bagian bawah layar
-              SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(plan.completenessMessage),
-                ),
-              ),
+              Expanded(child: _buildList(currentPlan, plansNotifier)),
+              SafeArea(child: Text(currentPlan.completenessMessage)),
             ],
           );
         },
       ),
-      floatingActionButton: _buildAddTaskButton(context),
+      floatingActionButton: _buildAddTaskButton(plansNotifier),
     );
   }
 
-  // Langkah 5 (Praktikum 2)
-  // Edit _buildAddTaskButton agar menggunakan PlanProvider sebagai sumber data
-  Widget _buildAddTaskButton(BuildContext context) {
-    ValueNotifier<Plan> planNotifier = PlanProvider.of(context);
+  Widget _buildAddTaskButton(ValueNotifier<List<Plan>> planNotifier) {
     return FloatingActionButton(
       child: const Icon(Icons.add),
       onPressed: () {
-        // Ambil plan saat ini, lalu tambahkan task baru
-        Plan currentPlan = planNotifier.value;
-        planNotifier.value = Plan(
-          name: currentPlan.name,
-          tasks: List<Task>.from(currentPlan.tasks)..add(const Task()),
-        );
+        final plans = planNotifier.value;
+        final planIndex = plans.indexWhere((p) => p.name == widget.plan.name);
+
+        final currentPlan = planIndex != -1 ? plans[planIndex] : widget.plan;
+        final updatedTasks = List<Task>.from(currentPlan.tasks)..add(const Task());
+
+        if (planIndex == -1) {
+          // Tambah plan baru
+          planNotifier.value = [...plans, Plan(name: currentPlan.name, tasks: updatedTasks)];
+        } else {
+          // Update plan yang ada
+          planNotifier.value = plans
+            ..[planIndex] = Plan(
+              name: currentPlan.name,
+              tasks: updatedTasks,
+            );
+        }
       },
     );
   }
 
-  // Langkah 7 (Praktikum 2)
-  // Edit _buildList agar menyesuaikan parameter dan memanggil _buildTaskTile dengan context
-  Widget _buildList(Plan plan) {
+  Widget _buildList(Plan currentPlan, ValueNotifier<List<Plan>> planNotifier) {
     return ListView.builder(
       controller: scrollController,
-      itemCount: plan.tasks.length,
-      itemBuilder: (context, index) =>
-          _buildTaskTile(plan.tasks[index], index, context),
+      itemCount: currentPlan.tasks.length,
+      itemBuilder: (context, index) {
+        return _buildTaskTile(currentPlan, index, planNotifier);
+      },
     );
   }
 
-  // Langkah 6 (Praktikum 2)
-  // Edit _buildTaskTile agar menggunakan PlanProvider dan TextFormField
-  Widget _buildTaskTile(Task task, int index, BuildContext context) {
-    ValueNotifier<Plan> planNotifier = PlanProvider.of(context);
+  Widget _buildTaskTile(Plan currentPlan, int index, ValueNotifier<List<Plan>> planNotifier) {
+    final plans = planNotifier.value;
+    final planIndex = plans.indexWhere((p) => p.name == widget.plan.name);
+
+    // Jika plan belum ada di provider, jangan izinkan edit
+    if (planIndex == -1) {
+      return ListTile(
+        leading: Checkbox(value: false, onChanged: null),
+        title: TextFormField(
+          initialValue: currentPlan.tasks[index].description,
+          enabled: false,
+        ),
+      );
+    }
 
     return ListTile(
       leading: Checkbox(
-        value: task.complete,
+        value: currentPlan.tasks[index].complete,
         onChanged: (selected) {
-          // Perbarui status checkbox task
-          Plan currentPlan = planNotifier.value;
-          planNotifier.value = Plan(
-            name: currentPlan.name,
-            tasks: List<Task>.from(currentPlan.tasks)
-              ..[index] = Task(
-                description: task.description,
-                complete: selected ?? false,
-              ),
-          );
+          final updatedTasks = List<Task>.from(currentPlan.tasks)
+            ..[index] = Task(
+              description: currentPlan.tasks[index].description,
+              complete: selected ?? false,
+            );
+
+          planNotifier.value = plans
+            ..[planIndex] = Plan(
+              name: currentPlan.name,
+              tasks: updatedTasks,
+            );
         },
       ),
-
-      // Gunakan TextFormField agar mudah menginisialisasi data dari provider
       title: TextFormField(
-        initialValue: task.description,
+        initialValue: currentPlan.tasks[index].description,
         onChanged: (text) {
-          // Perbarui deskripsi task saat teks berubah
-          Plan currentPlan = planNotifier.value;
-          planNotifier.value = Plan(
-            name: currentPlan.name,
-            tasks: List<Task>.from(currentPlan.tasks)
-              ..[index] = Task(
-                description: text,
-                complete: task.complete,
-              ),
-          );
+          final updatedTasks = List<Task>.from(currentPlan.tasks)
+            ..[index] = Task(
+              description: text,
+              complete: currentPlan.tasks[index].complete,
+            );
+
+          planNotifier.value = plans
+            ..[planIndex] = Plan(
+              name: currentPlan.name,
+              tasks: updatedTasks,
+            );
         },
       ),
     );
